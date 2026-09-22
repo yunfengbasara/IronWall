@@ -406,7 +406,9 @@ ${this.text.value('cardObtain', { kind: this.text.value(SkillCategoryRules[skill
       // 伤害那一条是现算的：每级的增量是固定的，但它占当前值的比例逐级变小
       // （一级升二级 +25%，四级升满级 +14%）。写死一个数就有四分之三的时候是假的。
       const gain = Math.round((skillDamageScale(entry.level + 1) / skillDamageScale(entry.level) - 1) * 100);
-      const reach = Math.round(SKILL_LEVEL_REACH * 100);
+      // 跟着这一招自己那条成长走：破空比别人陡一倍（见 SkillDef.reachGrowth），牌面上写
+      // 死全局那个 4% 的话，玩家看到的升级幅度有一半是假的。
+      const reach = Math.round((skill.reachGrowth ?? SKILL_LEVEL_REACH) * 100);
       return {
         key: `up:${entry.id}`,
         icon: SKILL_ICONS[entry.id],

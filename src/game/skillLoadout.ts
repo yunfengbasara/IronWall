@@ -142,7 +142,8 @@ export class SkillLoadout {
 
   /** 这一招练到现在，作用距离是表里那个数的几倍。 */
   reachScale(id: SkillId): number {
-    return skillReachScale(this.levels[id]);
+    // 破空有自己那条更陡的成长，别的招全用全局那一档。见 SkillDef.reachGrowth。
+    return skillReachScale(this.levels[id], skillById(id).reachGrowth);
   }
 
   /** 这一招练到现在，法力开销是表里那个数的几倍。 */

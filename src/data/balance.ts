@@ -615,8 +615,16 @@ export const SKILL_LEVEL_PASSIVE = 0.25;
 export const skillPassiveScale = (level: number): number =>
   1 + SKILL_LEVEL_PASSIVE * (Math.max(1, Math.min(level, SKILL_MAX_LEVEL)) - 1);
 
-export const skillReachScale = (level: number): number =>
-  1 + SKILL_LEVEL_REACH * (Math.max(1, Math.min(level, SKILL_MAX_LEVEL)) - 1);
+/**
+ * @param perLevel 这一招每级涨多少作用距离。不给就用全局那一档（SKILL_LEVEL_REACH）。
+ *
+ * 留这个口子是因为**有的招需要一条比别人陡的曲线**：全局那 0.04 满级才 ×1.16，等于一招从
+ * 一级起就基本是满尺寸的。绝大多数招该是这样（一招的形状是它的身份，不该练到后来变成另
+ * 一个东西），但破空是例外 —— 它是剑士的本命，而那个角色的强度几乎全压在这一招的面积上，
+ * 所以它得有"前期小、练起来才大"的空间。见 skills.ts 的 reachGrowth。
+ */
+export const skillReachScale = (level: number, perLevel: number = SKILL_LEVEL_REACH): number =>
+  1 + perLevel * (Math.max(1, Math.min(level, SKILL_MAX_LEVEL)) - 1);
 
 export const skillMpScale = (level: number): number =>
   1 - SKILL_LEVEL_MP_DISCOUNT * (Math.max(1, Math.min(level, SKILL_MAX_LEVEL)) - 1);
