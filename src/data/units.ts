@@ -194,22 +194,23 @@ export const UnitKinds: readonly UnitKindDef[] = [
   // 属性和杂兵是同一套字段，只是数大一截 —— 首领不需要新的机制，需要的是"打不动"这件事
   // 真的成立。他是场上唯一一个要认真打十几秒的人。
   //
-  // 他们不吃普通那条波次曲线，走自己的一组（balance.ts 的 BOSS_*_PER_WAVE）。
+  // 他们不吃普通那条波次曲线，走自己的两段斜坡（balance.ts 的 BOSS_*_PER_WAVE_EARLY/LATE）。
   //
-  // **防御是这两条记录里最要紧的那个数，不是血。** 玩家一局下来身上叠的全是乘算加成（等级、
-  // 技能等级、属性牌、本命加成），只加血的话首领就是个数字很大的沙袋 —— 砍的时间变长了，
-  // 但每一刀仍然轻飘飘。防御走的是递减公式（见 DEFENSE_SCALE），110 挡掉玩家一半出头的
-  // 伤害，那一刀砍上去**手感**就不一样了：他真的在挡。
+  // **下面这三个数是"第 1 波的首领"，不是"首领"。** 这一条很容易记反：血 3200、防 45、攻 60
+  // 看着一点都不像首领，而末波那个是 51,680 / 211 / 381 —— 十几倍的差距全在那两段斜坡上。
+  // 想让首领整体更硬，改 balance.ts 的 LATE 那几条；想让**开局第一个**更软，才改这里。
   //
-  // 攻击那一项同理往上抬了一大截：以前末波的精锐一下只打掉满配玩家 25 点血（两千八的血要
-  // 挨七十八下），站在他脸上砍是完全免费的。一个不用躲的首领不是首领，是个布景。
+  // 防御 45 是照着老版本的 40 定的：那一档一个一级玩家砍得动，而首领的毛病从来不在开局太软。
+  // 它往后每波按 DEFENSE_SCALE 那条递减曲线长上去，末波的 211 挡掉玩家 68% 的伤害 —— 那时候
+  // 他才是"硬得像一堵墙"。防御比血要紧，因为玩家身上叠的全是乘算加成：只加血的话首领就是个
+  // 数字很大的沙袋，砍的时间变长了，但每一刀仍然轻飘飘。
   {
     id: 'elite',
     nameKey: 'unitEliteName',
     noteKey: 'unitEliteNote',
     appearance: 'elite',
     palette: PALETTE_RED,
-    stats: grunt({ maxHp: 8000, attack: 150, defense: 110, moveSpeed: 22, attackRange: 19, attackArc: 1.5, attackSpeed: 0.85 }),
+    stats: grunt({ maxHp: 3200, attack: 60, defense: 45, moveSpeed: 22, attackRange: 19, attackArc: 1.5, attackSpeed: 0.85 }),
     boss: true,
     exp: 500,
   },
@@ -219,7 +220,7 @@ export const UnitKinds: readonly UnitKindDef[] = [
     noteKey: 'unitKnightBossNote',
     appearance: 'knight',
     palette: PALETTE_RED,
-    stats: grunt({ maxHp: 5600, attack: 120, defense: 88, moveSpeed: 26, attackRange: 16, attackArc: 1.7, attackSpeed: 1.05 }),
+    stats: grunt({ maxHp: 2240, attack: 48, defense: 36, moveSpeed: 26, attackRange: 16, attackArc: 1.7, attackSpeed: 1.05 }),
     boss: true,
     exp: 380,
   },

@@ -1620,7 +1620,16 @@ export class Battle {
    * 局内就升而不是等结算：升级会改属性（攻击、血、速度全在长），而一局有二十多分钟 —— 攒到
    * 最后一起结算的话，这一整局玩家的强度是平的，练级在游戏里就看不见了。
    *
-   * 升级把涨出来的血补上，但不治疗已经掉的血。升级是变强，不是喝药。
+   * **升级回满血和蓝。** 以前只补涨出来的那一截（"升级是变强，不是喝药"）—— 道理成立，
+   * 但那样的升级在场上是**完全看不见**的：血条长出来那一点点，人在人堆里根本注意不到，
+   * 于是升级只是头顶飘一个字。
+   *
+   * 回满之后它是一局里少数几个"局面当场翻过来"的时刻：被围到只剩一丝血、砍死最后一个人、
+   * 血条哗一下满回去 —— 那一下就是练级这件事在场上的样子。而且它是**自己挣来的**（升级
+   * 靠击杀），不像丹那样得先捡到。
+   *
+   * 会不会太强：升级的间隔本来就是按局算的（见 expToNextLevel 那条曲线，中后期一局才升
+   * 两三级），所以它一局最多救你几次，不是一个能靠它站桩的东西。
    */
   private gainExp(amount: number): void {
     if (amount <= 0) return;
@@ -1638,9 +1647,10 @@ export class Battle {
     }
     if (!leveled) return;
     if (this.heroLevel >= MAX_LEVEL) this.levelExp = 0;
-    const before = this.player.maxHp;
+    // 先重算属性再回满：上限这一刻就涨了，回的要是**涨完之后**的那个满。
     this.applyPlayerStats();
-    if (this.player.maxHp > before) this.player.hp += this.player.maxHp - before;
+    this.player.hp = this.player.maxHp;
+    this.currentMp = this.player.stats.maxMp;
     /*
      * 头顶飘一串金字：LV+1。
      *

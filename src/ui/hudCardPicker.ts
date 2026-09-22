@@ -1,4 +1,5 @@
 import { SkillCategoryRules, skillById, type SkillId } from '../game/skills';
+import { SPRINT_SKILL } from '../game/skillLoadout';
 import type { HudText, HudTextKey } from './text/hudText';
 import type { StatBonus } from '../data/types';
 import { HUD_ICON_URLS } from './hudIcons';
@@ -383,8 +384,24 @@ ${this.text.value('cardObtain', { kind: this.text.value(SkillCategoryRules[skill
           obtain: true,
         };
       });
-    // 升级：已经在用、还没满级的招。牌面上写清现在几级、升到几级。
-    const upgrade: HudCardOffer[] = (this.hooks?.upgradableSkills() ?? []).map((entry) => {
+    /*
+     * 升级：已经在用、还没满级的招。牌面上写清现在几级、升到几级。
+     *
+     * **前两轮把疾走撤下去。** 开局手上是两招（本命 + 疾走），而留给技能牌的只有一格 ——
+     * 两个人抢一格，本命那一张就只剩一半的机会站在那儿。离线跑一百万次量出来：前两轮
+     * 本命牌只有 **62.5%** 的场次会出现，另外 37.5% 玩家看到的是一张疾走升级加两张属性牌。
+     *
+     * 而那 37.5% 恰好把"前两轮不上新招"这条规则的意义整个抵消掉了 —— 它存在的全部理由就是
+     * "先把本命那一招推上去"（见 CARD_OBTAIN_FROM）。更糟的是疾走的那一级在这个时候几乎
+     * 不改变什么：它没有作用距离、没有法力开销，升一级只是跑起来省一点蓝、冷却短一点，
+     * 而开局那两轮玩家还没到"跑到脱力"的场面。一张看着是选择、实际是弃权的牌。
+     *
+     * 撤的只是**前两轮**，不是把它赶出牌库：满配那笔账（CARD_PICKS_FOR_FULL_BUILD）把八个
+     * 技能都算进去了，疾走从第三轮起照常上架。
+     */
+    const upgrade: HudCardOffer[] = (this.hooks?.upgradableSkills() ?? [])
+      .filter((entry) => !(this.round < CARD_OBTAIN_FROM && entry.id === SPRINT_SKILL))
+      .map((entry) => {
       const skill = skillById(entry.id);
       // 伤害那一条是现算的：每级的增量是固定的，但它占当前值的比例逐级变小
       // （一级升二级 +25%，四级升满级 +14%）。写死一个数就有四分之三的时候是假的。

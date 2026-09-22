@@ -22,14 +22,22 @@ import {
   WAVE_ATTACK_SPEED_PER_WAVE,
   WAVE_DEFENSE_PER_WAVE,
   WAVE_EXP_PER_WAVE,
-  BOSS_ATTACK_PER_WAVE,
+  BOSS_ATTACK_PER_WAVE_EARLY,
+  BOSS_ATTACK_PER_WAVE_LATE,
   BOSS_ATTACK_SPEED_PER_WAVE,
-  BOSS_DEFENSE_PER_WAVE,
-  BOSS_HP_PER_WAVE,
+  BOSS_DEFENSE_PER_WAVE_EARLY,
+  BOSS_DEFENSE_PER_WAVE_LATE,
+  BOSS_HP_PER_WAVE_EARLY,
+  BOSS_HP_PER_WAVE_LATE,
   WAVE_ATTACK_SPEED_PER_WAVE_LATE,
   WAVE_HP_PER_WAVE,
   WAVE_HP_PER_WAVE_LATE,
+  WAVE_EARLY_ATTACK_EASE,
+  WAVE_EARLY_SPEED_EASE,
+  WAVE_EASE_ATTACK_UNTIL,
+  WAVE_RAMP_FROM,
   WAVE_SPEED_PER_WAVE,
+  earlyWaveEase,
   lateWaveSteps,
   applyBonuses,
   applyGrowth,
@@ -104,12 +112,23 @@ export function resolveEnemyStats(
   const late = lateWaveSteps(wave);
   const base = kind.stats;
   const waveHp = kind.boss
-    ? 1 + BOSS_HP_PER_WAVE * steps
+    ? 1 + BOSS_HP_PER_WAVE_EARLY * steps + BOSS_HP_PER_WAVE_LATE * late
     : 1 + WAVE_HP_PER_WAVE * steps + WAVE_HP_PER_WAVE_LATE * late;
-  const waveAttack = kind.boss ? 1 + BOSS_ATTACK_PER_WAVE * steps : 1 + WAVE_ATTACK_PER_WAVE * steps;
-  const waveDefense = kind.boss ? 1 + BOSS_DEFENSE_PER_WAVE * steps : 1 + WAVE_DEFENSE_PER_WAVE * steps;
+  /*
+   * 前三波的减免，只有普通兵吃 —— 首领自己那两段斜坡已经把开头压软了（底数就是第 1 波
+   * 的值）。乘在整条曲线上，见 balance.ts 的 earlyWaveEase。
+   */
+  // 两条窗口不一样长：攻击拖到第 6 波（新手的缺口在第 4 波），速度只有三波（它有设计合约）。
+  const easeAttack = kind.boss ? 1 : earlyWaveEase(wave, WAVE_EARLY_ATTACK_EASE, WAVE_EASE_ATTACK_UNTIL);
+  const easeSpeed = kind.boss ? 1 : earlyWaveEase(wave, WAVE_EARLY_SPEED_EASE, WAVE_RAMP_FROM);
+  const waveAttack = kind.boss
+    ? 1 + BOSS_ATTACK_PER_WAVE_EARLY * steps + BOSS_ATTACK_PER_WAVE_LATE * late
+    : (1 + WAVE_ATTACK_PER_WAVE * steps) * easeAttack;
+  const waveDefense = kind.boss
+    ? 1 + BOSS_DEFENSE_PER_WAVE_EARLY * steps + BOSS_DEFENSE_PER_WAVE_LATE * late
+    : 1 + WAVE_DEFENSE_PER_WAVE * steps;
   // 速度那一条首领仍然不吃：他要能被绕开，见 MAX_ENEMY_SPEED 上面那段。
-  const waveSpeed = kind.boss ? 1 : 1 + WAVE_SPEED_PER_WAVE * steps;
+  const waveSpeed = kind.boss ? 1 : (1 + WAVE_SPEED_PER_WAVE * steps) * easeSpeed;
   const waveAttackSpeed = kind.boss
     ? 1 + BOSS_ATTACK_SPEED_PER_WAVE * steps
     : 1 + WAVE_ATTACK_SPEED_PER_WAVE * steps + WAVE_ATTACK_SPEED_PER_WAVE_LATE * late;
