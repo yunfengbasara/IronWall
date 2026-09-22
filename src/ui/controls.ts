@@ -32,6 +32,14 @@ export interface ControlHooks {
  *
  * 打：不归这里管，也不归玩家管。朝向由战斗自己锁最近的敌人（见 Battle.aimPlayer）。
  */
+/**
+ * 走路那四个键。单独列出来是给 keydown 拦默认行为用的（见构造里那段）。
+ *
+ * 移动在方向键上而不是 WASD：这个游戏一只手鼠标一只手键盘，而键盘那只手要同时按到走路、
+ * Q/W/E 三个技能和 R 跑步 —— 走路挪到方向键之后，字母区整片都留给了技能。
+ */
+const MOVE_CODES = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+
 export class Controls {
   /** 光标的缓冲坐标，与人物投影保持一致。按住左键时人朝它走。 */
   readonly cursor = { x: 0, y: 0 };
@@ -128,6 +136,14 @@ export class Controls {
         if (!event.repeat) hooks.onDebugMenu();
         return;
       }
+      /*
+       * 方向键要拦下来。**这一条不是可选的**：发布出去的游戏跑在 iframe 里（itch、
+       * CrazyGames、Poki 都是），不拦的话按上下会去滚外层页面 —— 人在走，页面也在动。
+       *
+       * **只在真的在打的时候拦。** 备战、商店、战绩、结算那几屏是能滚的 DOM 面板，
+       * 在那儿把方向键吃掉等于把键盘滚动也吃掉；而那时候方向键本来也不驱动任何人。
+       */
+      if (this.active && MOVE_CODES.has(event.code)) event.preventDefault();
       if (!this.keys.has(event.code)) hooks.onKey(event.code);
       this.keys.add(event.code);
       // 空格本身已经不干任何事（自动攻击是常态，不需要手动挥），但仍然要拦：不拦的话它会
@@ -156,28 +172,36 @@ export class Controls {
     return this.keys.has(code);
   }
 
-  /** 疾走这一帧按着没有。左右两个 Shift 都算 —— 手放在哪半边键盘上是玩家的事。 */
+  /**
+   * 疾走这一帧按着没有。**R 和 Shift 都算**，左右两个 Shift 也都算。
+   *
+   * R 是主键：它和 Q/W/E 排在同一行，手不用离开那一片就能跑。Shift 留着是因为"按住 Shift
+   * 跑"是这一类游戏几十年的肌肉记忆，掰它没有任何好处 —— 一个动作有两个键不会让谁迷路，
+   * 而少了任一个都会有人按不到。
+   */
   get sprintHeld(): boolean {
-    return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
+    return this.keys.has('KeyR')
+      || this.keys.has('ShiftLeft')
+      || this.keys.has('ShiftRight');
   }
 
   /**
-   * 这一帧 WASD 指着世界的哪个方向；一个键都没按就是 (0, 0)。返回的是复用的那一份，别长期
+   * 这一帧方向键指着世界的哪个方向；一个键都没按就是 (0, 0)。返回的是复用的那一份，别长期
    * 持有。
    *
-   * 世界的 +x 是屏幕右、+y 是屏幕下（见 Camera.worldToScreen），所以 W 是 -y。斜着按要
+   * 世界的 +x 是屏幕右、+y 是屏幕下（见 Camera.worldToScreen），所以"上"是 -y。斜着按要
    * 归一化：不归一化的话对角线快出 41%，"斜着走"就成了唯一正确的走法。
    *
-   * 对着按（A 和 D 一起压住）互相抵消，读作没按。比"后按的赢"简单，而且松开其中一个之后
+   * 对着按（左右一起压住）互相抵消，读作没按。比"后按的赢"简单，而且松开其中一个之后
    * 立刻回到另一个方向，手上不会空一帧。
    */
   keyboardMove(): { x: number; y: number } {
     let x = 0;
     let y = 0;
-    if (this.keys.has('KeyW')) y -= 1;
-    if (this.keys.has('KeyS')) y += 1;
-    if (this.keys.has('KeyA')) x -= 1;
-    if (this.keys.has('KeyD')) x += 1;
+    if (this.keys.has('ArrowUp')) y -= 1;
+    if (this.keys.has('ArrowDown')) y += 1;
+    if (this.keys.has('ArrowLeft')) x -= 1;
+    if (this.keys.has('ArrowRight')) x += 1;
     const len = Math.hypot(x, y);
     this.move.x = len > 0 ? x / len : 0;
     this.move.y = len > 0 ? y / len : 0;

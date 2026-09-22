@@ -374,7 +374,7 @@ export class Hud {
     this.waveInfo.setCountdown(stand > 0 ? stand : wave.countdown);
     this.waveInfo.setUrgent(stand > 0);
     this.waveInfo.setWaveProgress(wave.cleared, wave.waves);
-    // 三个主动槽（Q/E/R）加末尾钉死的疾走（Shift）。疾走不在槽数组里，见 SPRINT_SKILL，
+    // 三个主动槽（Q/W/E）加末尾钉死的疾走（R）。疾走不在槽数组里，见 SPRINT_SKILL，
     // 但它在这条栏上有自己的一格 —— 冷却、蓝够不够、练到几级，都和别的招一样要看得见。
     const slots = battle.skillLoadout.activeSkillSlots;
     for (let index = 0; index <= slots.length; index++) {

@@ -365,7 +365,7 @@ export class Menu {
     this.keysBox.appendChild(el('div', 'menu-rule'));
     const keys = el('div', 'menu-keys');
     keys.innerHTML =
-      '<b>WASD</b> / <b>按住左键</b> 移动（打哪边自动锁最近的人） · <b>按住 Shift</b> 跑（耗蓝） · ' +
+      '<b>方向键</b> / <b>按住左键</b> 移动（打哪边自动锁最近的人） · <b>按住 R</b> 跑（耗蓝） · ' +
       '<b>Q/E/R</b> 主动技能 · ' +
       '<b>J</b> 换自动攻击 · <b>O/P</b> 上下一波 · <b>\\</b> 末波压测 · <b>滚轮</b> 缩放 · <b>I</b> 物品图鉴 · ' +
       '<b>ESC</b> 结算画面　<b>F1</b> 这块调试菜单';

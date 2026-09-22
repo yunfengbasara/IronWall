@@ -191,7 +191,7 @@ export class FootstepEffects {
   private addDrops(x: number, y: number, man: Character, strength: number, focus: boolean): void {
     const group = focus ? 1 : 0;
     const count = 3 + Math.round(strength * 3);
-    // 水往他走的那一边溅，不是往他脸朝的那一边 —— 玩家用 WASD 之后这是两个方向了（见
+    // 水往他走的那一边溅，不是往他脸朝的那一边 —— 玩家用方向键之后这是两个方向了（见
     // Character.moveDir）。
     const vx = Math.cos(man.moveDir) * man.speed;
     const vy = Math.sin(man.moveDir) * man.speed;

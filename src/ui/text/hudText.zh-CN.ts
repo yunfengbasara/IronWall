@@ -62,7 +62,7 @@ export const HUD_TEXT_ZH_CN: HudMessages = {
   skillAegisNote: '罩子跟着人走，碰到就飞',
   skillDharmaNote: '按住持续展开，松手立停，持续耗蓝',
   skillHeavenGuardNote: '一排金甲重兵砸下来，端矛朝前推平一条路',
-  skillSprintNote: '按住 Shift 加速移动，持续耗蓝',
+  skillSprintNote: '按住 R 或 Shift 加速移动，持续耗蓝',
   skillIronBodyNote: '永久生效，通体呼吸提亮并强化轮廓光',
   skillBulwarkNote: '永久生效，防御与生命上限提高',
   skillMendNote: '十秒内持续回血',

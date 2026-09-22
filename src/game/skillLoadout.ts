@@ -11,18 +11,22 @@ import { SKILL_MAX_LEVEL, skillDamageScale, skillMpScale, skillRateScale, skillR
 /**
  * 主动槽与键位一一对应；UI、输入和战斗逻辑都从这里读，避免各写一份顺序。
  *
- * 三格，不是四格。W 归了走路（WASD），而疾走从槽里搬到了 Shift 上 —— 于是能自由配的槽位
- * 一个没少：原来是四格扣掉钉死的疾走，剩三格能配，现在就是这三格。
+ * **Q/W/E 三个连着的键**，加上 R 那一格钉死的疾走，正好是键盘上 QWER 那一片。走路搬到方向
+ * 键之后 W 就腾出来了 —— 在那之前它归 WASD，所以三个槽只能是 Q/E/R，中间空一格，按起来要
+ * 跳一下。现在三格是挨着的。
  */
-export const ACTIVE_SKILL_KEYS = ['Q', 'E', 'R'] as const;
-export const ACTIVE_SKILL_CODES = ['KeyQ', 'KeyE', 'KeyR'] as const;
+export const ACTIVE_SKILL_KEYS = ['Q', 'W', 'E'] as const;
+export const ACTIVE_SKILL_CODES = ['KeyQ', 'KeyW', 'KeyE'] as const;
 export type ActiveSkillSlot = 0 | 1 | 2;
 
 /**
- * 疾走。**不占主动槽**，键位是 Shift，四个角色都一样，装不上也卸不掉。
+ * 疾走。**不占主动槽**，键位是 R（Shift 也照样管用），四个角色都一样，装不上也卸不掉。
  *
  * 它是走位本身，不是一个配招选择。而且跑步的键位必须永远是同一个 —— 跟着配招变的话，手就
- * 没法记。所以它既不进牌库，也不进 Q/E/R 那三格：一直都在，一直在 Shift 上。
+ * 没法记。所以它既不进牌库，也不进 Q/W/E 那三格：一直都在，一直在 R 上。
+ *
+ * 两个键并存的理由见 ui/controls.ts 的 sprintHeld：R 挨着那三个技能键，Shift 是这一类游戏
+ * 几十年的肌肉记忆。
  */
 export const SPRINT_SKILL: SkillId = 'sprint';
 

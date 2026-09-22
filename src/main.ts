@@ -608,7 +608,7 @@ function flushSoundEvents(): void {
    * 这个声音就变成了整局不停的背景噪音 —— 一直在响的东西等于没在说话。只在疾走时响，
    * 它才有话说：那是"我正在冲"这一件事，而冲刺恰恰是玩家主动按下去、想要有反馈的动作。
    *
-   * 用 sprinting 而不是 sprintEngaged：站着按住 Shift 不算跑（见 battle.advanceSprint），
+   * 用 sprinting 而不是 sprintEngaged：站着按住跑步键不算跑（见 battle.advanceSprint），
    * 那时候脚根本没动，不该有脚步声。sprinting 为真就一定在走。
    *
    * drain 必须每帧都调，哪怕不放 —— 不然走路攒下的次数会在起跑那一下子全倒出来。
@@ -687,7 +687,7 @@ function layout(): void {
 }
 
 /**
- * 三个主动键位（Q/E/R）这一帧按着没有。数组复用，别长期持有。
+ * 三个主动键位（Q/W/E）这一帧按着没有。数组复用，别长期持有。
  *
  * 按住型的招（法相）读它；疾走不在这三格里，它单独走 sprintHeld。
  */

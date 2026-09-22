@@ -72,7 +72,7 @@ export const HUD_TEXT_EN: HudMessages = {
   skillAegisNote: 'A shell that moves with you, flinging back whatever touches it',
   skillDharmaNote: 'Hold to keep it open, release to stop, drains mana',
   skillHeavenGuardNote: 'A rank of gilded heavy infantry drops in and ploughs a lane forward',
-  skillSprintNote: 'Hold Shift to move faster, drains mana',
+  skillSprintNote: 'Hold R or Shift to move faster, drains mana',
   skillIronBodyNote: 'Always on: the whole body glows and the rim light hardens',
   skillBulwarkNote: 'Always on: higher defense and maximum health',
   skillMendNote: 'Heals over ten seconds',
