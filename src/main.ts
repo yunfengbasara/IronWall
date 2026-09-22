@@ -1688,6 +1688,15 @@ const setup = new SetupScreen(
     onLocaleChange: (locale) => applyLocale(locale),
     onSfxChange: (on) => applySfx(on),
     onMusicChange: (on) => applyMusic(on),
+    /*
+     * 清档。按钮那一侧已经问过第二遍了，这里就是真抹，一行。
+     *
+     * **别的地方一处都不用跟着清**，而这一点是特意确认过的：商店买的三样东西全部在开局
+     * 那一刻现读存档（enterMap 里的 rootBonus / startLevels / takeSupplies），商店那一屏
+     * 也是每次 show() 都重拼货架。所以没有一份按旧存档算好的缓存需要推倒 —— 备战屏自己
+     * 会重画，剩下的下次读到的就是新的。
+     */
+    onReset: () => profile.resetProgress(),
   },
   text,
 );

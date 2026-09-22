@@ -235,6 +235,25 @@ export class Profile {
     }
   }
 
+  /**
+   * 抹掉整份存档，回到第一次打开游戏的状态：金币、等级、战绩、根基、师承、补给全清。
+   *
+   * **就地换掉 data，而不是让调用方去 new 一个 Profile。** 这一份 Profile 的引用已经散在
+   * main.ts、商店、备战界面和战绩屏里了，换一个新对象的话那几处还攥着旧的，界面上会出现
+   * 一半清了一半没清 —— 比不清更糟。
+   *
+   * **设置那一块留着**（语言、音效、音乐）：玩家点的是"重新开始"，不是"把我的浏览器调回
+   * 出厂"。把界面语言也一起清掉，一个英文玩家会在一屏中文里找不到回去的路。
+   *
+   * 先写盘再返回：这一下要是没落地，玩家下次打开会发现进度又回来了，而他明明已经确认过了。
+   */
+  resetProgress(): void {
+    const settings = this.data.settings;
+    this.data = freshProfile();
+    this.data.settings = { ...settings };
+    this.save();
+  }
+
   get coins(): number {
     return this.data.coins;
   }

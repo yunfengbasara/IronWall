@@ -852,6 +852,38 @@
 }
 
 /*
+ * 清档。平时和商店、战绩长得一样，只有字是暗红的 —— 它在顶栏里是**唯一一个会毁掉东西**
+ * 的按钮，得和旁边两个入口区分开，但不该抢眼到让人以为这一屏的主角是它。
+ *
+ * .armed 是"真的清？"那一步：整个按钮翻成红底，因为这时候再点一下就真没了 —— 这一档是
+ * 少数几个该喧宾夺主的状态之一。.done 是清完那两秒，翻成和金币同一种暖黄，读作"好了"，
+ * 而不是再来一次警告。
+ */
+.setup-shop.danger {
+  color: #a8707a;
+  border-color: #4a3440;
+}
+
+.setup-shop.danger:hover {
+  color: #e2909c;
+  border-color: #7a4450;
+}
+
+.setup-shop.danger.armed,
+.setup-shop.danger.armed:hover {
+  color: #ffe2e6;
+  background: rgba(122, 40, 52, 0.95);
+  border-color: #c04a5c;
+}
+
+.setup-shop.danger.done,
+.setup-shop.danger.done:hover {
+  color: #1b1d24;
+  background: #c9a24a;
+  border-color: #c9a24a;
+}
+
+/*
  * 顶栏右侧那三组开关：语言、音效、音乐。
  *
  * 和结算屏上那一组长得一样（小方块，当前那一档亮着），只是小一号 —— 那边是一屏停下来的

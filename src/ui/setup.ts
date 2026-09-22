@@ -94,6 +94,13 @@ export interface SetupBridge {
   onLocaleChange?(locale: HudLocale): void;
   onSfxChange?(on: boolean): void;
   onMusicChange?(on: boolean): void;
+  /**
+   * 顶栏那个"清档"。按下去的时候**存档已经该被抹掉了** —— 界面这一侧已经问过第二遍
+   * （按钮自己的两步确认），回调里不要再弹一次。
+   *
+   * 清完这一屏会自己重画，所以实现这一条只要管存档，不用管界面。
+   */
+  onReset?(): void;
 }
 
 /** 备战界面要从存档里读的东西。 */
@@ -231,6 +238,19 @@ export class SetupScreen {
   private readonly shopButton = el('button', 'setup-shop');
   /** 商店右边那一个。摆在这儿而不是角色栏里：它记的是**所有**角色的事。 */
   private readonly historyButton = el('button', 'setup-shop');
+  /**
+   * 清档。**两步确认**：第一下把自己变成"真的清？"，第二下才真清。
+   *
+   * 不用浏览器的 confirm()：它会把整个页面钉住（游戏还在 requestAnimationFrame 里跑），
+   * 而且它长得完全不是这个游戏的样子。两步按钮把"确认"这件事做进按钮自己身上 —— 一次
+   * 误触只会看到一个变红的按钮，而那本身就是提示。
+   *
+   * 十二秒不点就自己退回去（resetTimer）。一个一直停在"真的清？"上的按钮迟早会被当成
+   * 普通按钮点掉，而那正是它要防的那一下。
+   */
+  private readonly resetButton = el('button', 'setup-shop danger');
+  /** 不是 null 就说明此刻停在"真的清？"那一步。存的是退回去的定时器。 */
+  private resetTimer: number | null = null;
   /** 顶栏那三个开关。当前这一档靠 on 这个类高亮，值记在 dataset 上。 */
   private localeButtons: HTMLButtonElement[] = [];
   private sfxButtons: HTMLButtonElement[] = [];
@@ -335,6 +355,57 @@ export class SetupScreen {
     this.markLocale();
     this.markSfx();
     this.markMusic();
+  }
+
+  /**
+   * 清档那个按钮的两步确认。
+   *
+   * 三个状态共用一个按钮，不弹任何东西：
+   *
+   *   清档      平时。
+   *   真的清？   点了一下。变红，十二秒不管就自己退回去。
+   *   已清空    真清完了，两秒后退回"清档"。
+   *
+   * 清完**立刻把这一屏重画一遍**（rebuild + 刷新进度）：金币归零、等级回到 1、商店买的
+   * 东西全没了，这些都写在这一屏上。不重画的话玩家看到的还是旧数字，他会以为没生效，
+   * 然后再点一次。
+   */
+  private buildReset(): void {
+    this.text.bindText(this.resetButton, 'resetTitle');
+    this.resetButton.type = 'button';
+    this.resetButton.addEventListener('click', () => {
+      if (this.resetTimer === null) {
+        this.armReset();
+        return;
+      }
+      this.disarmReset();
+      this.bridge.onReset?.();
+      // 存档已经换成新的了，把这一屏上读存档的每一处都刷一遍（rebuild 里连金币和随身
+      // 那一排也一起刷，见 refreshSummary）。
+      this.rebuild();
+      // 绑过文案的按钮一换语言就会被覆写回"清档"，所以这一行只是临时盖住，两秒后退回去。
+      this.resetButton.textContent = this.text.value('resetDone');
+      this.resetButton.classList.add('done');
+      window.setTimeout(() => {
+        this.resetButton.classList.remove('done');
+        this.text.bindText(this.resetButton, 'resetTitle');
+      }, 2000);
+    });
+  }
+
+  /** 进入"真的清？"那一步。 */
+  private armReset(): void {
+    this.text.bindText(this.resetButton, 'resetConfirm');
+    this.resetButton.classList.add('armed');
+    this.resetTimer = window.setTimeout(() => this.disarmReset(), 12000);
+  }
+
+  /** 退回"清档"。真清完和超时都走这里，所以定时器只有这一处清。 */
+  private disarmReset(): void {
+    if (this.resetTimer !== null) window.clearTimeout(this.resetTimer);
+    this.resetTimer = null;
+    this.resetButton.classList.remove('armed');
+    this.text.bindText(this.resetButton, 'resetTitle');
   }
 
   /** 一组开关：一个标题加几个小方块。textKeys 传了就把方块上的字也绑到文案表上。 */
@@ -753,6 +824,8 @@ export class SetupScreen {
     this.historyButton.type = 'button';
     this.historyButton.addEventListener('click', () => this.bridge.onHistory(this.currentHero.id));
     purseBox.appendChild(this.historyButton);
+    this.buildReset();
+    purseBox.appendChild(this.resetButton);
     purseBox.appendChild(el('span', 'setup-top-sep'));
     this.buildSettings(purseBox);
     top.appendChild(purseBox);

@@ -128,6 +128,11 @@ export const HUD_TEXT_EN: HudMessages = {
   pickupFortuneName: 'Fortune Charm',
   pickupFortuneNote: 'Doubles gold drops for the rest of the run',
 
+  // ---------------------------------------------------------------- 清档
+  resetTitle: 'Reset',
+  resetConfirm: 'Sure?',
+  resetDone: 'Wiped',
+
   // ---------------------------------------------------------------- 战绩
   historyTitle: 'Records',
   historyRuns: '{runs} runs',

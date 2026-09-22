@@ -118,6 +118,11 @@ export const HUD_TEXT_ZH_CN: HudMessages = {
   pickupFortuneName: '聚宝符',
   pickupFortuneNote: '本局金币掉落翻倍',
 
+  // ---------------------------------------------------------------- 清档
+  resetTitle: '清档',
+  resetConfirm: '真的清？',
+  resetDone: '已清空',
+
   // ---------------------------------------------------------------- 战绩
   historyTitle: '战绩',
   historyRuns: '{runs} 局',

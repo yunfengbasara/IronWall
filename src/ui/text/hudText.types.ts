@@ -139,6 +139,11 @@ export interface HudMessages {
   pickupFortuneName: string;
   pickupFortuneNote: string;
 
+  // ------------------------------------------------------------------ 清档
+  resetTitle: string;
+  resetConfirm: string;
+  resetDone: string;
+
   // ------------------------------------------------------------------ 战绩
   historyTitle: string;
   historyRuns: string;
