@@ -445,6 +445,13 @@ const BOSS_KIND = 'elite' as const;
 
 /** 首领挨一下定在原地多久，秒。只停脚不停手（见 Character.stun）。 */
 const BOSS_HIT_STUN = 0.14;
+/**
+ * 杂兵挨一下停在原地多久，秒。比首领那一档短一半多。
+ *
+ * 短是有讲究的：它只是给"被打中"补一个停顿，让趔趄读起来是被推的而不是自己走的。再长一点，
+ * 正面那一圈就会被连续的攻击钉死在原地 —— 那是首领才配有的待遇，杂兵该是被推开、然后挤回来。
+ */
+const GRUNT_HIT_STUN = 0.06;
 
 /** 玩家头顶那几串字从多高冒出来。比头再高一截，别和身边满地的伤害数字混在一起。 */
 const PLAYER_FLOAT_Z = 34;
@@ -2667,6 +2674,14 @@ export class Battle {
     // 完整怪物和无骨架数据一起移动，并共享避让与分离。
     this.driveEnemies(dt, view);
     this.separate();
+    /*
+     * 趔趄要在分离**之后**推。
+     *
+     * 它本来在 Character.update() 里，而那是 driveEnemies 内部调的 —— 顺序成了"推开 →
+     * 重叠 → 分离当帧推回来"，人堆越密抵消得越干净，而人堆密的时候正是最该看见反应的时候。
+     * 放到这儿，这一帧的最后一句话才是"他被打退了"。见 Character.applyStagger。
+     */
+    for (const e of this.enemies) e.applyStagger(dt);
     const mapBlend = DistantMotion.mapBlend(dt);
     for (const enemy of this.reserved) enemy.motion.smoothMap(enemy.x, enemy.y, mapBlend);
 
@@ -3315,7 +3330,9 @@ export class Battle {
 
     // 没死就只闪一下白光（takeHit 里做的），不溅碎片也不掉东西。碎片是"这个人碎了"的信号，
     // 挨一下还站着的人溅出甲片会让玩家以为他已经死了。
-    if (!e.takeHit(fromX, fromY, roll.value, { ...launch, force })) {
+    // stagger 跟着 force 走：练得越高的招，推得越明显 —— 和"打得越疼掀得越远"同一条规矩。
+    // 只有这条路（打敌人）传它；玩家挨打走的是 damagePlayer，不传，见 takeHit 里那段。
+    if (!e.takeHit(fromX, fromY, roll.value, { ...launch, force, stagger: force })) {
       /*
        * 首领挨一刀就停一下脚。
        *
@@ -3323,8 +3340,12 @@ export class Battle {
        * 停那一下把"我砍中了"和"他还在压过来"同时说出来：一步、一顿、又一步。
        *
        * 挺尸未消之前不重复触发，否则满配的输出打下去他会被永久钉在原地 —— 那就不是压迫而是一个桩子了。
+       *
+       * 杂兵也停，只是短得多（0.06 对 0.14）。这是"打中了"的第三层信号，和白光、趔趄一起
+       * 给：光有位移的话，人一边被推一边还在迈步，读起来是"他自己走过去的"；顿那一下之后
+       * 才是"他被打退的"。同样不重复触发 —— 每秒挨两下的人会被钉住，而那是首领才配有的待遇。
        */
-      if (e.boss && e.stun <= 0) e.stun = BOSS_HIT_STUN;
+      if (e.stun <= 0) e.stun = e.boss ? BOSS_HIT_STUN : GRUNT_HIT_STUN;
       return;
     }
 

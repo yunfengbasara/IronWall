@@ -77,6 +77,47 @@ const LAUNCH_UP_MIN = 76;
 const LAUNCH_UP_MAX = 105;
 const GRAVITY = 250;
 
+/*
+ * 挨了一下**但没死**的时候往后趔趄那一下。
+ *
+ * 在这之前，没死的人身上只有一层白光（takeHit 里的 hurt = 1），位移是零。而一级的自动
+ * 攻击技根本秒不掉杂兵 —— 离线量过：双锤武将一级横扫打第一波的杂兵（400 血）均伤 360，
+ * 要掷中那 18% 的暴击才秒得掉，披风剑士是 40%。也就是说**场上大多数命中都是不致命的**，
+ * 而它们全都只闪一下白光。玩家看到的是"有的人炸开飞走、有的人像没事一样继续走过来"，
+ * 读作"前排刮痧、后排被打飞"，其实是同一刀里的掷骰。
+ *
+ * 所以补的是这一层：打中了就一定看得见反应。死了的飞出去，没死的往后退半步。
+ *
+ * **不离地、不翻滚** —— 那两样是"他碎了"的信号，给活人用会让玩家以为自己杀掉了。
+ *
+ * 第一版给的是 38 / 0.09（位移 3.4 个单位），玩家反馈"好像没看到"。换算一下就知道为什么：
+ * 出货视口约 400 个世界单位宽、画在 960 像素上，也就是**每个单位 2.4 像素**——
+ *
+ *   趔趄 3.4 单位  =   8 像素
+ *   死亡击飞 25~56 =  60~134 像素
+ *   人物高         =  约 20 像素
+ *
+ * 八个像素，在一屏几百人乱动的画面里根本读不出来，差了整整一个数量级。75 / 0.10 是第二版
+ * （7.5 单位 ≈ 18 像素，看得见了），现在 95 / 0.11 是第三版：**10.5 个单位 ≈ 25 像素**，
+ * 比人物还高一截，而仍然只有死亡击飞（60~134 像素）的五分之一到四分之一 —— "被打退"和
+ * "被打死"在画面上还是两件不会认错的事。
+ *
+ * **代价写在这儿，别忘了：** 第 1 波的杂兵速度 8.4，玩家约 0.58 秒出一刀，一个循环他只走近
+ * 4.9 个单位。推 10.5 意味着**你正对着的那一圈永远贴不上来** —— 他们会在你的攻击距离边缘
+ * 来回荡：被推出去、走回来、又被推出去。这是有意的（你面朝哪儿，哪儿就推得动），而侧面和
+ * 背后照常接近（破空只盖 52°、横扫 80°），所以它不是无敌。但它确实**又把前期往简单推了
+ * 一把**，而前面已经为新手放宽过一轮了 —— 哪天觉得前期太松，这个数是第一个该往回调的。
+ *
+ * 位移是线性跟着初速走的：95 → 10.5 单位 / 25 像素，75 → 7.5 / 18，50 → 5 / 12。
+ *
+ * **场上每一招都会触发它**，因为伤害只有一个出口（battle.ts 的 strike 是全工程唯一一处打
+ * 敌人的 takeHit）。力度跟着各自的 force 走，所以突进那一下（LUNGE_FORCE 1.8）推得比平砍
+ * 狠近一倍 —— 撞上来的本来就该比扫一刀推得远。
+ */
+const STAGGER_SPEED = 95;
+/** 趔趄的衰减时间常数，秒。总位移 ≈ 初速 × 它。 */
+const STAGGER_DECAY = 0.11;
+
 /**
  * 滞空期间翻多少圈。
  *
@@ -211,6 +252,9 @@ export class Character {
   private turns = 1;
   /** 受击定格还剩多久。见 HIT_FREEZE。 */
   private hitFreeze = 0;
+  /** 挨了一下没死时往后趔趄的速度，世界单位/秒。见 STAGGER_SPEED。 */
+  private staggerX = 0;
+  private staggerY = 0;
 
   /**
    * 击飞轨迹上最近的几个点，(x, y, z) 依次存放的环形缓冲。
@@ -358,11 +402,46 @@ export class Character {
    * 挨一下。掉血、闪白光；血空了就倒。
    * @returns 这一下是否致命。
    */
+  /**
+   * 把趔趄那一下的位移推进一帧。**必须在分离之后调**，不能放进 update()。
+   *
+   * 第一版就放在 update() 里，而 update() 是在 driveEnemies 内部调的、紧跟着就是
+   * separate() —— 于是每一帧的顺序是"把人往后推 → 他和后面的人重叠了 → 分离当帧把他推
+   * 回来"。人堆越密抵消得越干净，而人堆密的时候正是你最想看见反应的时候。玩家的原话是
+   * "好像没看到趔趄"，一半是这个原因，另一半是位移本来就太小（见 STAGGER_SPEED）。
+   *
+   * 放在分离之后，这一帧的最后一句话就是"他被推开了"。下一帧分离照样会把队形挤回来 ——
+   * 那是对的，被打退半步然后重新挤上来正是想要的样子；不对的是**当帧**就被抹掉。
+   */
+  applyStagger(dt: number): void {
+    if (this.staggerX === 0 && this.staggerY === 0) return;
+    this.x += this.staggerX * dt;
+    this.y += this.staggerY * dt;
+    /*
+     * 线性衰减，不用 Math.exp。
+     *
+     * **不是因为 exp 慢** —— 换掉之后量不出差别（第 8 波 A/B 的中位数都在 4.5 ms 上下，
+     * 而这台机器跑同一个用例的抖动本来就有 ±0.4 ms，比要找的那点差还大）。用线性纯粹是
+     * 因为它一样够用：两者在 dt = 1/60 上差不到两个百分点，而上面那两个常数本来就是按
+     * 手感调的，不是从哪条物理公式推出来的。
+     *
+     * 夹住 0 是为了低帧率：dt 大过时间常数时不该乘出一个负数，那会让人往回弹一下。
+     */
+    const damp = dt < STAGGER_DECAY ? 1 - dt / STAGGER_DECAY : 0;
+    this.staggerX *= damp;
+    this.staggerY *= damp;
+    // 慢到看不出来就归零，省得每帧都在乘一个越来越小的数。
+    if (Math.abs(this.staggerX) + Math.abs(this.staggerY) < 0.5) {
+      this.staggerX = 0;
+      this.staggerY = 0;
+    }
+  }
+
   takeHit(
     fromX: number,
     fromY: number,
     damage = 1,
-    launch: { force?: number; freeze?: number } = {},
+    launch: { force?: number; freeze?: number; stagger?: number } = {},
   ): boolean {
     if (!this.alive) return false;
     this.hp -= damage;
@@ -372,6 +451,30 @@ export class Character {
     if (this.hp <= 0) {
       this.kill(fromX, fromY, launch);
       return true;
+    }
+    /*
+     * 没死，那就往后趔趄一下。见 STAGGER_SPEED 上面那段。
+     *
+     * **默认不给**（stagger 不传就是 0）。这一条是敌人专用的：玩家那一侧走的是同一个
+     * takeHit（battle.ts 的 damagePlayer），而末波场上六百多人、每秒十几下打在他身上 ——
+     * 给玩家也加趔趄，等于他被人海推着走，走位这件事当场报废。所以由调用方明说要不要。
+     */
+    const stagger = launch.stagger ?? 0;
+    if (stagger > 0) {
+      let awayX = this.x - fromX;
+      let awayY = this.y - fromY;
+      const len = Math.hypot(awayX, awayY);
+      if (len < 1e-4) {
+        // 正好站在打击点上：没有"背对"可言，就按他自己的朝向往前推。
+        awayX = Math.cos(this.facing);
+        awayY = Math.sin(this.facing);
+      } else {
+        awayX /= len;
+        awayY /= len;
+      }
+      // 盖过去而不是累加：连着挨两下该是"又被推了一次"，不是"推力翻倍飞出去"。
+      this.staggerX = awayX * STAGGER_SPEED * stagger;
+      this.staggerY = awayY * STAGGER_SPEED * stagger;
     }
     return false;
   }
